@@ -9,7 +9,7 @@ import {
   listDrivers,
   updateMonthStatus,
 } from '@/lib/api'
-import { cn, datesInMonth, monthLabel } from '@/lib/utils'
+import { calendarGrid, cn, datesInMonth, jpDayOfWeek, monthLabel } from '@/lib/utils'
 import type { Driver, DriverAvailability, MonthStatus } from '@/lib/types'
 
 const STATUS_LABEL: Record<MonthStatus, string> = {
@@ -132,7 +132,14 @@ function Inner() {
         </Card>
       </div>
 
-      <Card>
+      <AvailabilityCalendar
+        year={current.year}
+        month={current.month}
+        availability={availability}
+        loading={innerLoading}
+      />
+
+      <Card className="mt-4">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h2 className="font-semibold">ドライバー別 回答状況</h2>
@@ -214,5 +221,154 @@ function Inner() {
         </CardContent>
       </Card>
     </AdminShell>
+  )
+}
+
+function AvailabilityCalendar({
+  year,
+  month,
+  availability,
+  loading,
+}: {
+  year: number
+  month: number
+  availability: DriverAvailability[]
+  loading: boolean
+}) {
+  const grid = calendarGrid(year, month)
+
+  const byDate = new Map<string, DriverAvailability[]>()
+  for (const a of availability) {
+    const list = byDate.get(a.date) ?? []
+    list.push(a)
+    byDate.set(a.date, list)
+  }
+
+  return (
+    <Card className="mb-4">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h2 className="font-semibold">日別 出勤可能者カレンダー</h2>
+          <div className="flex gap-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> 出勤可
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-500" /> 応相談
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-rose-400" /> 休み
+            </span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="text-sm text-slate-500">読み込み中…</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500 mb-1">
+              {['日', '月', '火', '水', '木', '金', '土'].map((d, i) => (
+                <div
+                  key={d}
+                  className={cn(
+                    i === 0 && 'text-rose-500',
+                    i === 6 && 'text-sky-500'
+                  )}
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {grid.flat().map((c, i) => {
+                if (!c.inMonth) {
+                  return (
+                    <div
+                      key={i}
+                      className="min-h-[110px] rounded-md bg-slate-50/50"
+                    />
+                  )
+                }
+                const dow = jpDayOfWeek(c.date)
+                const list = byDate.get(c.date) ?? []
+                const available = list.filter((x) => x.status === 'available')
+                const maybe = list.filter((x) => x.status === 'maybe')
+                const off = list.filter((x) => x.status === 'off')
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      'min-h-[110px] rounded-md border bg-white p-1.5 text-[11px]',
+                      'border-slate-200',
+                      dow === '日' && 'bg-rose-50/30',
+                      dow === '土' && 'bg-sky-50/30'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex items-baseline justify-between mb-1',
+                        dow === '日' && 'text-rose-500',
+                        dow === '土' && 'text-sky-500'
+                      )}
+                    >
+                      <span className="font-bold text-xs">
+                        {Number(c.date.slice(-2))}
+                      </span>
+                      <span className="text-[9px] text-slate-400">
+                        {available.length + maybe.length}名可
+                      </span>
+                    </div>
+                    <div className="space-y-0.5 leading-tight">
+                      {available.map((a) => (
+                        <div
+                          key={`o-${a.driver_name}`}
+                          className="text-emerald-700 truncate"
+                          title={a.note ? `${a.driver_name} (${a.note})` : a.driver_name}
+                        >
+                          ● {a.driver_name}
+                          {a.note && (
+                            <span className="text-[9px] text-slate-400 ml-0.5">
+                              ※
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {maybe.map((a) => (
+                        <div
+                          key={`m-${a.driver_name}`}
+                          className="text-amber-700 truncate"
+                          title={a.note ? `${a.driver_name} (${a.note})` : a.driver_name}
+                        >
+                          △ {a.driver_name}
+                          {a.note && (
+                            <span className="text-[9px] text-slate-400 ml-0.5">
+                              ※
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      {off.length > 0 && (
+                        <div
+                          className="text-rose-400 text-[10px] truncate"
+                          title={off.map((x) => x.driver_name).join('、')}
+                        >
+                          × {off.map((x) => x.driver_name).join('、')}
+                        </div>
+                      )}
+                      {list.length === 0 && (
+                        <div className="text-slate-300 text-[10px]">—</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-2">
+              ※マーク … その日付に備考あり（カーソルを当てると表示）
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }
