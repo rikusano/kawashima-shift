@@ -109,59 +109,61 @@ function Inner() {
           {loading ? (
             <div className="text-slate-500">読み込み中…</div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-slate-500">
-                  <th className="py-2 pr-2 w-12">順</th>
-                  <th className="py-2 pr-2">コース名</th>
-                  <th className="py-2 pr-2 w-24">状態</th>
-                  <th className="py-2 pr-2 w-48 text-right">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {courses.map((c, i) => (
-                  <tr key={c.id} className="border-b last:border-0">
-                    <td className="py-1.5 pr-2 text-slate-500">{i + 1}</td>
-                    <td className="py-1.5 pr-2 font-medium">{c.name}</td>
-                    <td className="py-1.5 pr-2">
-                      {c.active ? (
-                        <span className="text-emerald-700">有効</span>
-                      ) : (
-                        <span className="text-slate-400">無効</span>
-                      )}
-                    </td>
-                    <td className="py-1.5 pr-2 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => move(c, -1)}>
-                          ↑
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => move(c, 1)}>
-                          ↓
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => rename(c)}>
-                          名前変更
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleActive(c)}
-                        >
-                          {c.active ? '無効化' : '有効化'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => remove(c)}
-                          className="text-rose-600"
-                        >
-                          削除
-                        </Button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead>
+                  <tr className="border-b text-left text-slate-500">
+                    <th className="py-2 pr-2 w-10">#</th>
+                    <th className="py-2 pr-2">コース名</th>
+                    <th className="py-2 pr-2 w-16">状態</th>
+                    <th className="py-2 pr-2 w-[280px] text-right">操作</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {courses.map((c, i) => (
+                    <tr key={c.id} className="border-b last:border-0">
+                      <td className="py-1.5 pr-2 text-slate-500">{i + 1}</td>
+                      <td className="py-1.5 pr-2 font-medium">{c.name}</td>
+                      <td className="py-1.5 pr-2">
+                        {c.active ? (
+                          <span className="text-emerald-700">有効</span>
+                        ) : (
+                          <span className="text-slate-400">無効</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 pr-2 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => move(c, -1)} title="上へ">
+                            ↑
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => move(c, 1)} title="下へ">
+                            ↓
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => rename(c)}>
+                            編集
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleActive(c)}
+                          >
+                            {c.active ? '停止' : '再開'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => remove(c)}
+                            className="text-rose-600"
+                          >
+                            削除
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
