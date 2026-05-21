@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import {
+  createDriver,
   listAvailabilityForMonth,
   listDrivers,
   updateMonthStatus,
@@ -74,6 +75,20 @@ function Inner() {
     await updateMonthStatus(current.id, s)
     push(`ステータスを「${STATUS_LABEL[s]}」に変更しました`, 'success')
     reload()
+  }
+
+  async function addExtraToRoster(name: string) {
+    if (!confirm(`${name} さんを名簿に追加しますか？`)) return
+    try {
+      const max = drivers.reduce((m, d) => Math.max(m, d.sort_order), 0)
+      await createDriver(name, max + 10)
+      push(`${name} を名簿に追加しました`, 'success')
+      // 再読み込み
+      const ds = await listDrivers()
+      setDrivers(ds)
+    } catch (e: any) {
+      push(`追加失敗: ${e.message}`, 'error')
+    }
   }
 
   return (
@@ -197,18 +212,37 @@ function Inner() {
                     <>
                       <tr>
                         <td colSpan={6} className="pt-3 pb-1 text-xs text-slate-500">
-                          名簿外からの回答
+                          名簿外からの回答（{extras.length}名）
                         </td>
                       </tr>
                       {extras.map((name) => {
                         const list = byDriver.get(name) ?? []
+                        const ok = list.filter((x) => x.status === 'available').length
+                        const maybe = list.filter((x) => x.status === 'maybe').length
+                        const off = list.filter((x) => x.status === 'off').length
                         return (
-                          <tr key={name} className="border-b last:border-0">
+                          <tr key={name} className="border-b last:border-0 bg-amber-50/30">
                             <td className="py-1.5 pr-3 font-medium text-amber-700">
-                              {name} ⚠
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span>{name}</span>
+                                <span className="text-[9px] px-1 rounded bg-amber-100 text-amber-700">
+                                  名簿外
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 text-[11px] px-2"
+                                  onClick={() => addExtraToRoster(name)}
+                                >
+                                  + 名簿に追加
+                                </Button>
+                              </div>
                             </td>
                             <td className="py-1.5 pr-3">{list.length}件</td>
-                            <td className="py-1.5 pr-3" colSpan={4} />
+                            <td className="py-1.5 pr-3 text-emerald-700">{ok}</td>
+                            <td className="py-1.5 pr-3 text-amber-700">{maybe}</td>
+                            <td className="py-1.5 pr-3 text-rose-700">{off}</td>
+                            <td className="py-1.5 pr-3" />
                           </tr>
                         )
                       })}

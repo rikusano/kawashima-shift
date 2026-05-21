@@ -532,6 +532,7 @@ function AssignmentCell({
               assignedDriverIds={assignedDriverIds}
               currentDriverId={assignment?.driver_id ?? null}
               onPick={onPick}
+              onPickFreeText={onFreeText}
               onClear={onClear}
             />
           ) : (
@@ -553,6 +554,7 @@ function SelectList({
   assignedDriverIds,
   currentDriverId,
   onPick,
+  onPickFreeText,
   onClear,
 }: {
   drivers: Driver[]
@@ -560,6 +562,7 @@ function SelectList({
   assignedDriverIds: Set<string>
   currentDriverId: string | null
   onPick: (id: string) => void
+  onPickFreeText: (text: string) => void
   onClear: () => void
 }) {
   // 名簿のうち、その日 available または maybe のみ表示。off の人は除外。
@@ -569,6 +572,15 @@ function SelectList({
     if (!av) return false
     return av.status === 'available' || av.status === 'maybe'
   })
+
+  // 名簿外の回答者（available/maybe）
+  const rosterNames = new Set(drivers.map((d) => d.name))
+  const nonRosterCandidates: DriverAvailability[] = []
+  for (const av of availByName.values()) {
+    if (rosterNames.has(av.driver_name)) continue
+    if (av.status === 'off') continue
+    nonRosterCandidates.push(av)
+  }
 
   function handlePick(d: Driver) {
     if (assignedDriverIds.has(d.id) && d.id !== currentDriverId) {
@@ -580,9 +592,9 @@ function SelectList({
 
   return (
     <div className="max-h-64 overflow-y-auto space-y-0.5">
-      {candidates.length === 0 && (
+      {candidates.length === 0 && nonRosterCandidates.length === 0 && (
         <div className="text-xs text-slate-500 py-2 px-1">
-          この日「出勤可」と回答したドライバーはいません
+          この日「出勤可」と回答した人はいません
         </div>
       )}
       {candidates.map((d) => {
@@ -609,6 +621,36 @@ function SelectList({
           </button>
         )
       })}
+
+      {nonRosterCandidates.length > 0 && (
+        <>
+          <div className="text-[10px] text-slate-400 px-2 pt-2 pb-0.5 border-t mt-1">
+            名簿外の回答者（自由記述として割当）
+          </div>
+          {nonRosterCandidates.map((av) => {
+            const isMaybe = av.status === 'maybe'
+            return (
+              <button
+                key={`nr-${av.driver_name}`}
+                onClick={() => onPickFreeText(av.driver_name)}
+                className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-amber-50 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-1.5">
+                  {isMaybe && <span className="text-amber-500">●</span>}
+                  <span>{av.driver_name}</span>
+                  <span className="text-[9px] px-1 rounded bg-amber-100 text-amber-700">
+                    名簿外
+                  </span>
+                  {av.note && (
+                    <span className="text-[10px] text-slate-500">({av.note})</span>
+                  )}
+                </span>
+              </button>
+            )
+          })}
+        </>
+      )}
+
       <div className="border-t mt-1 pt-1">
         <button
           onClick={onClear}

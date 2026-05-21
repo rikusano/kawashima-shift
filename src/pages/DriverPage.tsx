@@ -199,6 +199,9 @@ export default function DriverPage() {
                   {suggestion}
                 </button>
                 ？
+                <div className="text-xs text-amber-600 mt-1">
+                  名簿に無い名前でもそのまま入力できます（管理者が後で確認します）。
+                </div>
               </div>
             )}
             <Button
