@@ -13,6 +13,7 @@ import { Input, Textarea } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import {
+  createDriver,
   getOrCreateMonth,
   listAvailabilityForDriver,
   listDrivers,
@@ -89,6 +90,19 @@ export default function DriverPage() {
   async function confirmName(n: string) {
     const trimmed = n.trim()
     if (!trimmed) return
+    // 名簿に無ければ自動追加（重複・競合は無視）
+    if (!roster.includes(trimmed)) {
+      try {
+        await createDriver(trimmed)
+        setRoster((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]))
+      } catch (e: any) {
+        // すでに存在する等のエラーは握り潰す
+        if (!String(e?.message ?? '').match(/duplicate|unique|23505/i)) {
+          // eslint-disable-next-line no-console
+          console.warn('createDriver auto-add failed:', e)
+        }
+      }
+    }
     setCommittedName(trimmed)
     setName(trimmed)
     setSuggestion(null)
@@ -200,7 +214,7 @@ export default function DriverPage() {
                 </button>
                 ？
                 <div className="text-xs text-amber-600 mt-1">
-                  名簿に無い名前でもそのまま入力できます（管理者が後で確認します）。
+                  違う方は、そのまま入力を進めれば名簿に自動登録されます。
                 </div>
               </div>
             )}
